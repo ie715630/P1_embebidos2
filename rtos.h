@@ -26,6 +26,11 @@ typedef int8_t rtos_task_handle_t;
 /*! @brief Tick type, used for time measurement */
 typedef uint64_t rtos_tick_t;
 
+typedef enum
+{
+	PRIORITY_0 = 0, PRIORITY_1, PRIORITY_2, PRIORITY_3, PRIORITY_4
+} priorities_t;
+
 /*!
  * @brief Starts the scheduler, from this point the RTOS takes control
  * on the processor

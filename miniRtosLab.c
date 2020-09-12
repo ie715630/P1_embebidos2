@@ -27,9 +27,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 /**
- * @file    miniRtosLab.c
+ * @file	miniRtosLab.c
  * @brief   Application entry point.
  */
 #include <stdio.h>
@@ -76,24 +76,33 @@ void dummy_task3(void)
 	}
 }
 
+void idle_task(void)
+{
+	for (;;)
+	{
+		/* Nothing */
+	}
+}
+
 /*
  * @brief   Application entry point.
  */
 int main(void) {
 
-  	/* Init board hardware. */
-    BOARD_InitBootPins();
-    BOARD_InitBootClocks();
-    BOARD_InitBootPeripherals();
-  	/* Init FSL debug console. */
-    BOARD_InitDebugConsole();
+	/* Init board hardware. */
+	BOARD_InitBootPins();
+	BOARD_InitBootClocks();
+	BOARD_InitBootPeripherals();
+	/* Init FSL debug console. */
+	BOARD_InitDebugConsole();
 
-    PRINTF("Hello World\n");
+	PRINTF("Hello World\n");
 
-	rtos_create_task(dummy_task1, 1, kAutoStart);
-	rtos_create_task(dummy_task2, 2, kAutoStart);
-	rtos_create_task(dummy_task3, 1, kAutoStart);
-	rtos_start_scheduler();
+	rtos_create_task(dummy_task1, PRIORITY_1, kAutoStart);
+	rtos_create_task(dummy_task2, PRIORITY_2, kAutoStart);
+	rtos_create_task(dummy_task3, PRIORITY_1, kAutoStart);
+	rtos_create_task(dummy_task3, PRIORITY_1, kAutoStart);
+	rtos_create_task(idle_task, PRIORITY_4, kAutoStart);
 
 	for (;;)
 	{
