@@ -133,6 +133,7 @@ void rtos_suspend_task(void)
 	rtos_task_handle_t current_task_num = task_list.current_task;
 	rtos_tcb_t task_to_suspend = task_list.tasks[current_task_num];
 	task_to_suspend.state = S_SUSPENDED;
+	// todo(Kevin): Call dispatch from the task. From isr or normal exec?
 }
 
 void rtos_activate_task(rtos_task_handle_t task)
@@ -153,8 +154,8 @@ static void reload_systick(void)
 
 static void dispatcher(task_switch_type_e type)
 {
-	uint8_t num_of_next_task = IDLE_TASK_NUM;
-	priorities_t highest_priority_in_task_list = PRIORITY_0;
+	rtos_task_handle_t num_of_next_task = IDLE_TASK_NUM;
+	priorities_t highest_priority_in_task_list = PRIORITY_4;
 	
 	uint8_t num_tasks = task_list.nTasks;
 	for(uint8_t task_num = 0; task_num < num_tasks; task_num++)
@@ -174,7 +175,7 @@ static void dispatcher(task_switch_type_e type)
 
 	if(num_of_next_task != task_list.current_task)
 	{
-		// Is this right?
+		// todo(Kevin): Is this right?
 		context_switch(type);	
 	}
 
