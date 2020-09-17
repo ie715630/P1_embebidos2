@@ -16,6 +16,7 @@
 #include "fsl_gpio.h"
 #include "fsl_port.h"
 #endif
+
 /******************************************************************************/
 // Module defines
 /******************************************************************************/
@@ -41,6 +42,13 @@
 static void init_is_alive(void);
 static void refresh_is_alive(void);
 #endif
+
+/******************************************************************************/
+// Task definitions
+/******************************************************************************/
+
+#define newTask_ptr ((rtos_tcb_t*) &(task_list.tasks[task_list.nTasks]))
+#define currentTask_ptr ((rtos_tcb_t*) &(task_list.tasks[task_list.current_task]))
 
 /******************************************************************************/
 // Type definitions
@@ -115,7 +123,24 @@ void rtos_start_scheduler(void)
 rtos_task_handle_t rtos_create_task(void (*task_body)(), uint8_t priority,
 		rtos_autostart_e autostart)
 {
-
+	if(RTOS_MAX_NUMBER_OF_TASKS <= task_list.nTasks)
+	{
+		return -1;
+	}
+	
+	newTask_ptr->priority = priority;
+	newTask_ptr->state = (kAutoStart == autostart) ? (S_READY):(S_SUSPENDED);
+	newTask_ptr->task_body = task_body;
+	newTask_ptr->local_tick = 0;
+	newTask_ptr->sp = &(newTask_ptr->stack[RTOS_STACK_SIZE - 1 - STACK_FRAME_SIZE]);
+	
+	newTask_ptr->stack[RTOS_STACK_SIZE - STACK_LR_OFFSET] = ((uint32_t)(task_body));
+	newTask_ptr->stack[RTOS_STACK_SIZE - STACK_PSR_OFFSET] = STACK_PSR_DEFAULT;
+	
+	/* Incrementamos el numero de tareas registradas */
+	task_list.nTasks++;
+	
+	return((rtos_task_handle_t) (task_list.nTasks - 1U));
 }
 
 rtos_tick_t rtos_get_clock(void)
@@ -125,7 +150,10 @@ rtos_tick_t rtos_get_clock(void)
 
 void rtos_delay(rtos_tick_t ticks)
 {
-
+	currentTask_ptr->state = S_WAITING;
+	currentTask_ptr->local_tick = ticks;
+	// todo(Sergio): Check this
+	dispatcher(kFromNormalExec);
 }
 
 void rtos_suspend_task(void)
@@ -138,7 +166,9 @@ void rtos_suspend_task(void)
 
 void rtos_activate_task(rtos_task_handle_t task)
 {
-
+	task_list.tasks[task].state = S_READY;
+	// todo(Sergio): Check this
+	dispatcher(kFromNormalExec);
 }
 
 /******************************************************************************/
