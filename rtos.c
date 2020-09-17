@@ -255,8 +255,10 @@ void SysTick_Handler(void)
 #ifdef RTOS_ENABLE_IS_ALIVE
 	refresh_is_alive();
 #endif
+	task_list.global_tick++;
 	activate_waiting_tasks();
 	reload_systick();
+	dispatcher(kFromISR);
 }
 
 void PendSV_Handler(void)
