@@ -212,8 +212,28 @@ static void dispatcher(task_switch_type_e type)
 }
 
 FORCE_INLINE static void context_switch(task_switch_type_e type)
-{
-
+{	
+	/* Flag to indicate if this function has already been
+	 * executed or not
+	 * */
+	static uint8_t first_execution = 0x01;
+	
+	/* Save the stack pointer of processor on a variable */
+	register uint32_t sp asm("sp");
+	
+	if(0 != first_execution)
+	{
+		first_execution = 0;
+	}
+	else
+	{
+		currentTask_ptr->sp = ((uint32_t*) (sp));
+		currentTask_ptr->sp += (kFromNormalExec == type) ? (-(STACK_FRAME_SIZE+1)) : (STACK_FRAME_SIZE + 1);
+	}
+	
+	task_list.current_task = task_list.next_task;
+	currentTask_ptr->state = S_RUNNING;
+	SCB->ICSR |= SCB_ICSR_PENDVSET_Msk;
 }
 
 static void activate_waiting_tasks()
