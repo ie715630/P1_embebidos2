@@ -11,6 +11,8 @@
 #include "rtos.h"
 #include "rtos_config.h"
 #include "clock_config.h"
+#include "MK66F18.h"
+#include "fsl_debug_console.h"
 
 #ifdef RTOS_ENABLE_IS_ALIVE
 #include "fsl_gpio.h"
@@ -28,7 +30,8 @@
 #define STACK_PSR_OFFSET			1
 #define STACK_PSR_DEFAULT			0x01000000
 
-#define IDLE_TASK_NUM 				5
+#define IDLE_TASK_NUM 				4
+#define NUM_TAREAS					IDLE_TASK_NUM + 1
 
 /******************************************************************************/
 // IS ALIVE definitions
@@ -60,7 +63,7 @@ typedef enum
 } task_state_e;
 typedef enum
 {
-	kFromISR = 0, kFromNormalExec
+	kFromISR = 0, kFromNormalExec	// Coming from systick/delay
 } task_switch_type_e;
 
 typedef struct
@@ -133,7 +136,7 @@ rtos_task_handle_t rtos_create_task(void (*task_body)(), uint8_t priority,
 	newTask_ptr->task_body = task_body;
 	newTask_ptr->local_tick = 0;
 	newTask_ptr->sp = &(newTask_ptr->stack[RTOS_STACK_SIZE - 1 - STACK_FRAME_SIZE]);
-	
+
 	newTask_ptr->stack[RTOS_STACK_SIZE - STACK_LR_OFFSET] = ((uint32_t)(task_body));
 	newTask_ptr->stack[RTOS_STACK_SIZE - STACK_PSR_OFFSET] = STACK_PSR_DEFAULT;
 	
@@ -150,9 +153,10 @@ rtos_tick_t rtos_get_clock(void)
 
 void rtos_delay(rtos_tick_t ticks)
 {
+	rtos_task_handle_t current_task_num = task_list.current_task;
+	rtos_tcb_t task = task_list.tasks[current_task_num];
 	currentTask_ptr->state = S_WAITING;
 	currentTask_ptr->local_tick = ticks;
-	// todo(Sergio): Check this
 	dispatcher(kFromNormalExec);
 }
 
@@ -161,13 +165,12 @@ void rtos_suspend_task(void)
 	rtos_task_handle_t current_task_num = task_list.current_task;
 	rtos_tcb_t task_to_suspend = task_list.tasks[current_task_num];
 	task_to_suspend.state = S_SUSPENDED;
-	// todo(Kevin): Call dispatch from the task. From isr or normal exec?
+	dispatcher(kFromNormalExec);
 }
 
 void rtos_activate_task(rtos_task_handle_t task)
 {
 	task_list.tasks[task].state = S_READY;
-	// todo(Sergio): Check this
 	dispatcher(kFromNormalExec);
 }
 
@@ -187,16 +190,16 @@ static void dispatcher(task_switch_type_e type)
 	rtos_task_handle_t num_of_next_task = IDLE_TASK_NUM;
 	priorities_t highest_priority_in_task_list = PRIORITY_4;
 	
-	uint8_t num_tasks = task_list.nTasks;
+	uint8_t num_tasks = NUM_TAREAS;
 	for(uint8_t task_num = 0; task_num < num_tasks; task_num++)
 	{
-		rtos_tcb_t current_task = task_list.tasks[task_num];	
-		bool task_can_be_executed = ((current_task.state == S_RUNNING) ||
-									 (current_task.state == S_READY));
-		if((current_task.priority > highest_priority_in_task_list)	&&
+		rtos_tcb_t * current_task = &(task_list.tasks[task_num]);
+		bool task_can_be_executed = ((current_task->state == S_RUNNING) ||
+									 (current_task->state == S_READY));
+		if((current_task->priority < highest_priority_in_task_list)	&&
 			task_can_be_executed)
 		{
-			highest_priority_in_task_list = current_task.priority;
+			highest_priority_in_task_list = current_task->priority;
 			num_of_next_task = task_num;
 		}
 	}
@@ -205,7 +208,6 @@ static void dispatcher(task_switch_type_e type)
 
 	if(num_of_next_task != task_list.current_task)
 	{
-		// todo(Kevin): Is this right?
 		context_switch(type);	
 	}
 
@@ -221,24 +223,34 @@ FORCE_INLINE static void context_switch(task_switch_type_e type)
 	/* Save the stack pointer of processor on a variable */
 	register uint32_t sp asm("sp");
 	
+	register uint32_t r0 asm("r0");
+	(void) r0;
+
 	if(0 != first_execution)
 	{
 		first_execution = 0;
 	}
 	else
 	{
-		currentTask_ptr->sp = ((uint32_t*) (sp));
-		currentTask_ptr->sp += (kFromNormalExec == type) ? (-(STACK_FRAME_SIZE+1)) : (STACK_FRAME_SIZE + 1);
+		asm("mov r0, r7");
+		task_list.tasks[task_list.current_task].sp = (uint32_t*) r0;
+
+		if(kFromNormalExec == type) {
+			currentTask_ptr->sp -= 	0xB; //9; //(0x24);
+		}
+		else {
+			currentTask_ptr->sp -= 	0xB;
+		}
 	}
 	
 	task_list.current_task = task_list.next_task;
 	currentTask_ptr->state = S_RUNNING;
-	SCB->ICSR |= SCB_ICSR_PENDVSET_Msk;
+	SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 }
 
 static void activate_waiting_tasks()
 {
-	uint8_t num_tasks = task_list.nTasks;
+	uint8_t num_tasks = NUM_TAREAS;
 	for(uint8_t task_num = 0; task_num < num_tasks; task_num++)
 	{
 		rtos_tcb_t current_task = task_list.tasks[task_num];	
@@ -251,18 +263,6 @@ static void activate_waiting_tasks()
 				current_task.state = S_READY;
 			}
 		}
-	}
-}
-
-/******************************************************************************/
-// IDLE TASK
-/******************************************************************************/
-
-static void idle_task(void)
-{
-	for (;;)
-	{
-
 	}
 }
 

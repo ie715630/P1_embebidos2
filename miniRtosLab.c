@@ -104,6 +104,8 @@ int main(void) {
 	rtos_create_task(dummy_task3, PRIORITY_1, kAutoStart);
 	rtos_create_task(idle_task, PRIORITY_4, kAutoStart);
 
+	rtos_start_scheduler();
+
 	for (;;)
 	{
 		__asm("NOP");
