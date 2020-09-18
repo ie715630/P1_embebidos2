@@ -22,3 +22,21 @@ En la quinta poniamos la tarea actual en SUSPENDED y llamamos al dispatcher otra
 La sexta es cambiar el estado de la tarea que se indico por READY, esto lo hacemos simplemente accediendo a la posición del arreglo que coincide con la tarea,
 una vez hecho esto llamamos al dispatcher en Normal Exec.
 
+El septimo ya es el dispatcher, el cual es una de las tareas esenciales del programa, en esta lo que hicimos fue, a partir de un buce for, hacer un swipe de 
+las tareas que estuvieran creadas en el programa y revisar cual es la de mayor prioridad, de tal forma que la siguiente de mayor prioridad fuera la siguiente a
+ser ejecutada, siempre y cuando este en READY o RUNNING, una vez encontrada esta tarea, si fuera diferente a la que se esta ejecutando actualmente, se hace el
+context switch, si es la misma se sigue ejecutando.
+
+El context switch es la siguiente función, en esta lo que hicimos fue tener una variable de tipo static que nos sirviera para saber si es la primera vez que
+se ejecuta esta función o no, en caso de que no fuera la primera entonces cargabamos el stack pointer del procesador al stack pointer de la tarea actual, y
+en caso de que fuera Normal Exec o ISR, realizabamos el ajuste del stack pointer adecuado.  Una vez hecho esto, asignabamos la siguiente tarea a realizar, 
+según lo obtenido en el dispatcher y la dejabamos en READY
+
+La función Activate Waiting Task es sencilla, lo que hace es por medio de un for hacer un sweep a todas las tareas existentes, y si encuentra una tarea en waiting
+la cambia a RUNNING, para que pudiera ser revisada cuando se ejecute el dispatcher. Algo importante de esta función es que se reduce el local tick de la función. 
+
+Systick Handler es sencilla, lo que hace es aumentar el global tick en 1, hecho esto, ejecuta la función de Activate Waiting Tasks y llama al dispatcher, pero
+ahora por medio de interrupción del tick.
+
+PendSV lo que hace es almacenar el valor del sp del procesador (que esta en r0) en una variable, entonces el stack pointer de la tarea se carga a esta variable,
+de tal forma que el stack pointer del procesador es reemplazado por el de la tarea
