@@ -50,7 +50,7 @@ void dummy_task1(void)
 	{
 		PRINTF("IN TASK 1: %i +++++++++++++++\r\n", counter);
 		counter++;
-		rtos_delay(2000);
+		rtos_delay(200);
 	}
 }
 
@@ -61,7 +61,7 @@ void dummy_task2(void)
 	{
 		PRINTF("IN TASK 2: %i ***************\r\n", counter);
 		counter++;
-		rtos_delay(1000);
+		rtos_delay(100);
 	}
 }
 
@@ -72,7 +72,7 @@ void dummy_task3(void)
 	{
 		PRINTF("IN TASK 3: %i ---------------\r\n", counter);
 		counter++;
-		rtos_delay(4000);
+		rtos_delay(400);
 	}
 }
 

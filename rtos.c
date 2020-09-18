@@ -153,8 +153,6 @@ rtos_tick_t rtos_get_clock(void)
 
 void rtos_delay(rtos_tick_t ticks)
 {
-	rtos_task_handle_t current_task_num = task_list.current_task;
-	rtos_tcb_t task = task_list.tasks[current_task_num];
 	currentTask_ptr->state = S_WAITING;
 	currentTask_ptr->local_tick = ticks;
 	dispatcher(kFromNormalExec);
@@ -162,9 +160,7 @@ void rtos_delay(rtos_tick_t ticks)
 
 void rtos_suspend_task(void)
 {
-	rtos_task_handle_t current_task_num = task_list.current_task;
-	rtos_tcb_t task_to_suspend = task_list.tasks[current_task_num];
-	task_to_suspend.state = S_SUSPENDED;
+	currentTask_ptr->state = S_SUSPENDED;
 	dispatcher(kFromNormalExec);
 }
 
@@ -221,8 +217,6 @@ FORCE_INLINE static void context_switch(task_switch_type_e type)
 	static uint8_t first_execution = 0x01;
 	
 	/* Save the stack pointer of processor on a variable */
-	register uint32_t sp asm("sp");
-	
 	register uint32_t r0 asm("r0");
 	(void) r0;
 
@@ -233,13 +227,13 @@ FORCE_INLINE static void context_switch(task_switch_type_e type)
 	else
 	{
 		asm("mov r0, r7");
-		task_list.tasks[task_list.current_task].sp = (uint32_t*) r0;
+		currentTask_ptr->sp = (uint32_t*) r0;
 
 		if(kFromNormalExec == type) {
-			currentTask_ptr->sp -= 	0xB; //9; //(0x24);
+			currentTask_ptr->sp -= 	9; //9; //(0x24);
 		}
 		else {
-			currentTask_ptr->sp -= 	0xB;
+			currentTask_ptr->sp -= 	-0xB;
 		}
 	}
 	
@@ -253,14 +247,14 @@ static void activate_waiting_tasks()
 	uint8_t num_tasks = NUM_TAREAS;
 	for(uint8_t task_num = 0; task_num < num_tasks; task_num++)
 	{
-		rtos_tcb_t current_task = task_list.tasks[task_num];	
+		rtos_tcb_t * p_current_task = &(task_list.tasks[task_num]);
 
-		if(current_task.state == S_WAITING)
+		if(p_current_task->state == S_WAITING)
 		{
-			current_task.local_tick--;
-			if(current_task.local_tick == 0)
+			p_current_task->local_tick--;
+			if(p_current_task->local_tick == 0)
 			{
-				current_task.state = S_READY;
+				p_current_task->state = S_READY;
 			}
 		}
 	}
@@ -286,7 +280,7 @@ void PendSV_Handler(void)
 	register int32_t r0 asm("r0");
 	(void) r0;
 	SCB->ICSR |= SCB_ICSR_PENDSVCLR_Msk;
-	r0 = (int32_t) task_list.tasks[task_list.current_task].sp;
+	r0 = (int32_t) currentTask_ptr->sp;
 	asm("mov r7,r0");
 }
 

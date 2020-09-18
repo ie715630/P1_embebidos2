@@ -13,10 +13,10 @@
 #define SOURCE_RTOS_CONFIG_H_
 
 /*! @brief Tick period */
-#define RTOS_TIC_PERIOD_IN_US 		(1000)
+#define RTOS_TIC_PERIOD_IN_US 		(30000)
 
 /*! @brief Stack size for each task */
-#define RTOS_STACK_SIZE				(100)
+#define RTOS_STACK_SIZE				(500)
 
 /*! @brief Max number of tasks for runtime */
 #define RTOS_MAX_NUMBER_OF_TASKS	(10)
