@@ -135,7 +135,7 @@ rtos_task_handle_t rtos_create_task(void (*task_body)(), uint8_t priority,
 	newTask_ptr->state = (kAutoStart == autostart) ? (S_READY):(S_SUSPENDED);
 	newTask_ptr->task_body = task_body;
 	newTask_ptr->local_tick = 0;
-	newTask_ptr->sp = &(newTask_ptr->stack[RTOS_STACK_SIZE - 1 - STACK_FRAME_SIZE]);
+	newTask_ptr->sp = &(newTask_ptr->stack[RTOS_STACK_SIZE - 1]) - STACK_FRAME_SIZE;
 
 	newTask_ptr->stack[RTOS_STACK_SIZE - STACK_LR_OFFSET] = ((uint32_t)(task_body));
 	newTask_ptr->stack[RTOS_STACK_SIZE - STACK_PSR_OFFSET] = STACK_PSR_DEFAULT;
